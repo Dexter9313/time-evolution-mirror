@@ -87,11 +87,6 @@ Particles::Particles(const char* filename)
 	                        {"color_next", 1}});
 
 	update(timeBegin);
-
-	for(unsigned int i(0); i < 8; ++i)
-	{
-		/* code */
-	}
 }
 
 void Particles::update(double time)
@@ -101,19 +96,24 @@ void Particles::update(double time)
 	this->time = time;
 	o          = logger_reader_get_next_offset_from_time(reader, time);
 
-	for(unsigned int i(0); i < 8; ++i)
+	for(unsigned int i(0); i < threadsNumber; ++i)
 	{
-		workerThreads[i]
-		    = new WorkerThread(i * data.size() / 8, (i + 1) * data.size() / 8,
-		                       reader, &data, particles, &time, &o);
+		workerThreads[i] = new WorkerThread(
+		    (i + threadsNumber * currentPortion) * data.size()
+		        / (portionsNumber * threadsNumber),
+		    (i + 1 + threadsNumber * currentPortion) * data.size()
+		        / (portionsNumber * threadsNumber),
+		    reader, &data, particles, &time, &o);
 		workerThreads[i]->start();
 	}
-	for(unsigned int i(0); i < 8; ++i)
+	for(unsigned int i(0); i < threadsNumber; ++i)
 	{
 		workerThreads[i]->wait(INT_MAX);
 		delete workerThreads[i];
 	}
-	currentHalf = 1 - currentHalf;
+	++currentPortion;
+	currentPortion %= portionsNumber;
+
 	/*
 	for(size_t i(0); i < data.size(); ++i)
 	{
@@ -134,7 +134,7 @@ void Particles::update(double time)
 	        timeSorted[next.time].push_back(i);
 	    }
 	}*/
-	GLHandler::updateVertices(mesh, &(data[0].pos_prev[0]), 8 * data.size());
+	GLHandler::updateVertices(mesh, &(data[0].pos_prev[0]), 10 * data.size());
 }
 
 void Particles::render(double time)
@@ -196,7 +196,7 @@ void WorkerThread::run()
 			(*data)[i].pos_next[1] = next.pos[1];
 			(*data)[i].pos_next[2] = next.pos[2];
 			(*data)[i].time_next   = next.time;
-			(*data)[i].color_next       = next.type / 4;
+			(*data)[i].color_next  = next.type / 4;
 		}
 	}
 }

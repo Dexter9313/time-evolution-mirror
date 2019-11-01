@@ -59,7 +59,7 @@ void MainWin::updateScene(BasicCamera& camera, QString const& /*pathId*/)
 				time = particles->timeBegin
 				       + timer.elapsed()
 				             * (particles->timeEnd - particles->timeBegin)
-				             / 40000.0;
+				             / 30000.0;
 			else
 				time = particles->timeBegin;
 		}

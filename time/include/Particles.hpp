@@ -30,6 +30,8 @@
 
 #include "GLHandler.hpp"
 
+#define THREADS_NUMBER 8
+
 struct logger_reader;
 struct logger_particle;
 
@@ -68,12 +70,15 @@ class Particles
 	std::map<double, std::list<size_t>> timeSorted;
 
 	// Multithreading
-	WorkerThread* workerThreads[8];
+
+	const unsigned int threadsNumber  = THREADS_NUMBER;
+	const unsigned int portionsNumber = 5;
+	unsigned int currentPortion       = 0;
+
+	WorkerThread* workerThreads[THREADS_NUMBER];
 
 	double time;
 	size_t o;
-
-	unsigned int currentHalf = 0;
 
 	// GL
 	GLHandler::ShaderProgram shader;
