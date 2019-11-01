@@ -32,19 +32,16 @@ Particles::Particles(const char* filename)
 	timeBegin_ = logger_reader_get_time_begin(reader) + 1e-4;
 	timeEnd_   = logger_reader_get_time_end(reader) - 1e-4;
 
-	std::cout << "Time begin: " << timeBegin << " end: " << timeEnd
-	          << std::endl;
 	logger_reader_set_time(reader, timeBegin);
 
 	/* Get the number of particles */
 	int n_type      = 0;
 	long long n_tot = 0;
-	const long long* n_parts
+	const uint64_t* n_parts
 	    = logger_reader_get_number_particles(reader, &n_type);
 	for(int i = 0; i < n_type; i++)
 	{
 		n_tot += n_parts[i];
-		printf("%lld particles out of %lld...\n", n_parts[i], n_tot);
 	}
 
 	particles = new logger_particle[n_tot];
@@ -52,57 +49,108 @@ Particles::Particles(const char* filename)
 	logger_reader_read_from_index(reader, timeBegin, logger_reader_const,
 	                              particles, n_tot);
 
-	for(int i(0); i < n_tot; ++i)
+	double min[3] = {DBL_MAX, DBL_MAX, DBL_MAX},
+	       max[3] = {DBL_MIN, DBL_MIN, DBL_MIN};
+	double tmin = DBL_MAX, tmax = DBL_MIN;
+
+	for(long long i(0); i < n_tot; ++i)
 	{
 		logger_particle* p = &(particles[i]);
 		data.push_back({{p->pos[0], p->pos[1], p->pos[2]},
 		                timeBegin,
+		                p->type,
 		                {0.f, 0.f, 0.f},
-		                timeBegin - 1e-4});
+		                timeBegin - 1e-4,
+		                p->type});
+
+		for(unsigned int i(0); i < 3; ++i)
+		{
+			if(p->pos[i] < min[i])
+				min[i] = p->pos[i];
+			if(p->pos[i] > max[i])
+				max[i] = p->pos[i];
+		}
+		if(p->pos[i] < tmin)
+			tmin = p->pos[i];
+		if(p->pos[i] > tmax)
+			tmax = p->pos[i];
+
+		timeSorted[timeBegin - 1e-4].push_back(i);
 	}
 
 	shader = GLHandler::newShader("particles");
-	GLHandler::setShaderParam(shader, "color", QColor(255, 255, 255));
-	GLHandler::setShaderParam(shader, "alpha", 1.f);
-	mesh = GLHandler::newMesh();
-	GLHandler::setVertices(mesh, &(data[0].pos_prev[0]), 8*n_tot, shader, {{"pos_prev", 4}, {"pos_next", 4}});
+	mesh   = GLHandler::newMesh();
+	GLHandler::setVertices(mesh, &(data[0].pos_prev[0]), 10 * n_tot, shader,
+	                       {{"pos_prev", 4},
+	                        {"color_prev", 1},
+	                        {"pos_next", 4},
+	                        {"color_next", 1}});
 
 	update(timeBegin);
+
+	for(unsigned int i(0); i < 8; ++i)
+	{
+		/* code */
+	}
 }
 
 void Particles::update(double time)
 {
-	size_t o = logger_reader_get_offset_from_time(reader, time);
-	for(unsigned int i(0); i < data.size(); ++i)
+	if(time > timeEnd)
+		return;
+	this->time = time;
+	o          = logger_reader_get_next_offset_from_time(reader, time);
+
+	for(unsigned int i(0); i < 8; ++i)
 	{
-		if(time > data[i].time_next)
-		{
-			logger_particle next;
-			logger_reader_get_next_particle(reader, &(particles[i]), &next, o);
-
-			data[i].pos_prev[0] = particles[i].pos[0];
-			data[i].pos_prev[1] = particles[i].pos[1];
-			data[i].pos_prev[2] = particles[i].pos[2];
-			data[i].time_prev = particles[i].time;
-
-			data[i].pos_next[0] = next.pos[0];
-			data[i].pos_next[1] = next.pos[1];
-			data[i].pos_next[2] = next.pos[2];
-			data[i].time_next = next.time;
-
-			if(i == 0)
-				std::cout << data[i] << std::endl;
-		}
+		workerThreads[i]
+		    = new WorkerThread(i * data.size() / 8, (i + 1) * data.size() / 8,
+		                       reader, &data, particles, &time, &o);
+		workerThreads[i]->start();
 	}
-	GLHandler::updateVertices(mesh, &(data[0].pos_prev[0]), 8 * data.size());
+	for(unsigned int i(0); i < 8; ++i)
+	{
+		workerThreads[i]->wait(INT_MAX);
+		delete workerThreads[i];
+	}
+	currentHalf = 1 - currentHalf;
+	/*
+	for(size_t i(0); i < data.size(); ++i)
+	{
+	    if(time > data[i].time_next)
+	    {
+	        logger_particle next;
+	        logger_reader_get_next_particle(reader, &(particles[i]), &next, o);
 
+	        data[i].pos_prev[0] = particles[i].pos[0];
+	        data[i].pos_prev[1] = particles[i].pos[1];
+	        data[i].pos_prev[2] = particles[i].pos[2];
+	        data[i].time_prev   = particles[i].time;
+
+	        data[i].pos_next[0] = next.pos[0];
+	        data[i].pos_next[1] = next.pos[1];
+	        data[i].pos_next[2] = next.pos[2];
+	        data[i].time_next   = next.time;
+	        timeSorted[next.time].push_back(i);
+	    }
+	}*/
+	GLHandler::updateVertices(mesh, &(data[0].pos_prev[0]), 8 * data.size());
 }
 
 void Particles::render(double time)
 {
-	GLHandler::setShaderParam(shader, "time", (float)time);
-	GLHandler::setUpRender(shader);
+	QMatrix4x4 scale;
+
+	scale.translate(0.5, 0.5, 0.5);
+	scale.scale(100.0);
+	scale.translate(-0.5, -0.5, -0.5);
+	scale.scale(1.0 / 4564.667500421165);
+
+	GLHandler::beginTransparent();
+	GLHandler::setShaderParam(shader, "time", (float) time);
+	GLHandler::setUpRender(shader, scale);
 	GLHandler::render(mesh, GLHandler::PrimitiveType::POINTS);
+	GLHandler::endTransparent();
 }
 
 Particles::~Particles()
@@ -126,4 +174,29 @@ std::ostream& operator<<(std::ostream& out, Particles::Particle const& p)
 	    << "}";
 
 	return out;
+}
+
+void WorkerThread::run()
+{
+	for(size_t i(begin); i < end; ++i)
+	{
+		if(*time > (*data)[i].time_next)
+		{
+			logger_particle next;
+			logger_reader_get_next_particle(reader, &(particles[i]), &next,
+			                                *offset);
+
+			(*data)[i].pos_prev[0] = particles[i].pos[0];
+			(*data)[i].pos_prev[1] = particles[i].pos[1];
+			(*data)[i].pos_prev[2] = particles[i].pos[2];
+			(*data)[i].time_prev   = particles[i].time;
+			(*data)[i].color_prev  = particles[i].type / 4;
+
+			(*data)[i].pos_next[0] = next.pos[0];
+			(*data)[i].pos_next[1] = next.pos[1];
+			(*data)[i].pos_next[2] = next.pos[2];
+			(*data)[i].time_next   = next.time;
+			(*data)[i].color_next       = next.type / 4;
+		}
+	}
 }

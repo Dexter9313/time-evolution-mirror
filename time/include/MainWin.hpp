@@ -14,6 +14,7 @@ class MainWin : public AbstractMainWin
 	virtual ~MainWin();
 
   protected:
+	virtual void keyPressEvent(QKeyEvent* e) override;
 	virtual void actionEvent(BaseInputManager::Action a, bool pressed) override;
 
 	// declare drawn resources
@@ -34,6 +35,8 @@ class MainWin : public AbstractMainWin
 
 	QElapsedTimer timer;
 	double time = 0.0;
+
+	bool advancing = false;
 };
 
 #endif // MAINWIN_H

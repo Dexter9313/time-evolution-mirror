@@ -19,13 +19,21 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
 
+#include <QElapsedTimer>
+#include <cfloat>
 #include <iostream>
+#include <list>
+#include <map>
 #include <vector>
+
+#include <QThread>
 
 #include "GLHandler.hpp"
 
 struct logger_reader;
 struct logger_particle;
+
+class WorkerThread;
 
 class Particles
 {
@@ -34,8 +42,10 @@ class Particles
 	{
 		float pos_prev[3];
 		float time_prev;
+		float color_prev;
 		float pos_next[3];
 		float time_next;
+		float color_next;
 	};
 
 	Particles(const char* filename);
@@ -44,7 +54,7 @@ class Particles
 	~Particles();
 
 	double const& timeBegin = timeBegin_;
-	double const& timeEnd = timeEnd_;
+	double const& timeEnd   = timeEnd_;
 
   private:
 	double timeBegin_;
@@ -55,11 +65,52 @@ class Particles
 
 	std::vector<Particle> data;
 
+	std::map<double, std::list<size_t>> timeSorted;
+
+	// Multithreading
+	WorkerThread* workerThreads[8];
+
+	double time;
+	size_t o;
+
+	unsigned int currentHalf = 0;
+
 	// GL
 	GLHandler::ShaderProgram shader;
 	GLHandler::Mesh mesh;
 };
 
 std::ostream& operator<<(std::ostream& out, Particles::Particle const& p);
+
+class WorkerThread : public QThread
+{
+	Q_OBJECT
+  public:
+	WorkerThread(size_t begin, size_t end, logger_reader* reader,
+	             std::vector<Particles::Particle>* data,
+	             logger_particle* particles, double* time, size_t* offset)
+	    : begin(begin)
+	    , end(end)
+	    , time(time)
+	    , offset(offset)
+	    , reader(reader)
+	    , data(data)
+	    , particles(particles)
+	{
+	}
+
+  private:
+	void run() override;
+
+	size_t begin;
+	size_t end;
+
+	double* time;
+	size_t* offset;
+
+	logger_reader* reader;
+	std::vector<Particles::Particle>* data;
+	logger_particle* particles;
+};
 
 #endif // PARTICLES_H
