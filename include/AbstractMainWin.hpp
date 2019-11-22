@@ -457,6 +457,10 @@ class AbstractMainWin : public QOpenGLWindow
 	bool renderControllersBeforeScene  = true;
 	QString pathIdRenderingControllers = "default";
 
+	// OFFSCREEN RENDERING
+	bool videomode = false;
+	unsigned int currentVideoFrame = 0;
+
   private:
 	void initializeGL() override;
 	void vrRenderSinglePath(RenderPath& renderPath, QString const& pathId,

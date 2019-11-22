@@ -17,6 +17,8 @@
 #INIT
 cmake_minimum_required(VERSION 3.0.0)
 
+set(CMAKE_USER_MAKE_RULES_OVERRIDE /home/florian/git-projects/time-evolution/time/cmake/foo.cmake)
+
 #READ CONFIG FILE AND SET VARIABLES
 set(BUILD_CONF "${CMAKE_CURRENT_SOURCE_DIR}/build.conf")
 if(NOT EXISTS "${BUILD_CONF}")

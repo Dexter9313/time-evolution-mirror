@@ -557,6 +557,11 @@ void AbstractMainWin::paintGL()
 		frameTiming_ = vrHandler.getFrameTiming() / 1000.f;
 	}
 
+	if(videomode)
+	{
+		frameTiming_ = 1.0 / 60.0;
+	}
+
 	// handle VR events if any
 	if(vrHandler)
 	{
@@ -665,6 +670,16 @@ void AbstractMainWin::paintGL()
 			                       postProcessingTargets.at(i % 2),
 			                       GLHandler::getScreenRenderTarget(), texs);
 		}
+	}
+
+	if(videomode)
+	{
+		QImage frame(GLHandler::generateScreenshot().mirrored(false, true));
+		QString number = QString("%1").arg(currentVideoFrame, 5, 10, QChar('0'));
+
+		frame.save("frame" + number + ".png");
+
+		currentVideoFrame++;
 	}
 
 	// Trigger a repaint immediatly
