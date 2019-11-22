@@ -10,9 +10,27 @@ uniform mat4 camera;
 
 uniform float time;
 
-const float boxSize = 4564.667500421165;
+const float boxSize = 1347.93;
 
 out vec4 f_color;
+
+vec4 color(int type)
+{
+	const float alpha = 0.4;
+	switch(type)
+	{
+		case 0:
+			return vec4(0.090837, 0.401984, 1.0, alpha);
+		case 1:
+		case 2:
+			//return vec4(1.0, 0.254154, 0.0865034, alpha);
+			return vec4(1.0, 0.254154, 0.0865034, 0.0);
+		case 4:
+			return vec4(1.0, 0.72974005284, 0.0, 1.0);
+		default:
+			return vec4(vec3(1.0), alpha);
+	}
+}
 
 vec3 wrapB(vec3 v, vec3 b)
 {
@@ -47,10 +65,8 @@ void main()
 
 	gl_Position = camera * vec4(position, 1.0);
 
-	vec4 colprev = color_prev * vec4(1.0, 0.0, 0.0, 0.1)
-	               + (1.0 - color_prev) * vec4(0.0, 1.0, 0.0, 0.1);
-	vec4 colnext = color_next * vec4(1.0, 0.0, 0.0, 0.1)
-	               + (1.0 - color_next) * vec4(0.0, 1.0, 0.0, 0.1);
+	vec4 colprev = color(int(color_prev));
+	vec4 colnext = color(int(color_next));
 
 	f_color = t * colnext + (1.0 - t) * colprev;
 }

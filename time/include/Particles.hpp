@@ -72,7 +72,7 @@ class Particles
 	// Multithreading
 
 	const unsigned int threadsNumber  = THREADS_NUMBER;
-	const unsigned int portionsNumber = 5;
+	const unsigned int portionsNumber = 1;
 	unsigned int currentPortion       = 0;
 
 	WorkerThread* workerThreads[THREADS_NUMBER];

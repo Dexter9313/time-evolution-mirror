@@ -29,8 +29,8 @@ Particles::Particles(const char* filename)
 
 	logger_reader_init(reader, const_cast<char*>(filename), 0);
 
-	timeBegin_ = logger_reader_get_time_begin(reader) + 1e-4;
-	timeEnd_   = logger_reader_get_time_end(reader) - 1e-4;
+	timeBegin_ = logger_reader_get_time_begin(reader) + 1e-5;
+	timeEnd_   = logger_reader_get_time_end(reader) - 1e-5;
 
 	logger_reader_set_time(reader, timeBegin);
 
@@ -60,7 +60,7 @@ Particles::Particles(const char* filename)
 		                timeBegin,
 		                p->type,
 		                {0.f, 0.f, 0.f},
-		                timeBegin - 1e-4,
+		                timeBegin - 1e-5,
 		                p->type});
 
 		for(unsigned int i(0); i < 3; ++i)
@@ -75,7 +75,7 @@ Particles::Particles(const char* filename)
 		if(p->pos[i] > tmax)
 			tmax = p->pos[i];
 
-		timeSorted[timeBegin - 1e-4].push_back(i);
+		timeSorted[timeBegin].push_back(i);
 	}
 
 	shader = GLHandler::newShader("particles");
@@ -144,9 +144,9 @@ void Particles::render(double time)
 	scale.translate(0.5, 0.5, 0.5);
 	scale.scale(100.0);
 	scale.translate(-0.5, -0.5, -0.5);
-	scale.scale(1.0 / 4564.667500421165);
+	scale.scale(1.0 / 1347.93);
 
-	GLHandler::beginTransparent();
+	GLHandler::beginTransparent(GL_SRC_ALPHA, GL_ONE);
 	GLHandler::setShaderParam(shader, "time", (float) time);
 	GLHandler::setUpRender(shader, scale);
 	GLHandler::render(mesh, GLHandler::PrimitiveType::POINTS);
@@ -190,13 +190,13 @@ void WorkerThread::run()
 			(*data)[i].pos_prev[1] = particles[i].pos[1];
 			(*data)[i].pos_prev[2] = particles[i].pos[2];
 			(*data)[i].time_prev   = particles[i].time;
-			(*data)[i].color_prev  = particles[i].type / 4;
+			(*data)[i].color_prev  = particles[i].type;
 
 			(*data)[i].pos_next[0] = next.pos[0];
 			(*data)[i].pos_next[1] = next.pos[1];
 			(*data)[i].pos_next[2] = next.pos[2];
 			(*data)[i].time_next   = next.time;
-			(*data)[i].color_next  = next.type / 4;
+			(*data)[i].color_next  = next.type;
 		}
 	}
 }

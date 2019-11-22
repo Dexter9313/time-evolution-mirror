@@ -5,6 +5,7 @@
 
 #include "AbstractMainWin.hpp"
 #include "Particles.hpp"
+#include "Text3D.hpp"
 
 class MainWin : public AbstractMainWin
 {
@@ -37,6 +38,12 @@ class MainWin : public AbstractMainWin
 	double time = 0.0;
 
 	bool advancing = false;
+
+	float distance = 1.f;
+	float height   = 0.f;
+
+	Text3D* text;
+	Text3D* timeText;
 };
 
 #endif // MAINWIN_H
