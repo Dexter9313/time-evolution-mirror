@@ -40,7 +40,7 @@ install:
     ############################################################################
     # Install Additional Project Deps
     ############################################################################
-    - ..\%PROJECT_DIRECTORY%\ci\appveyor\install.bat
+    #- ..\%PROJECT_DIRECTORY%\ci\appveyor\install.bat
 
 cache:
     - '%APPVEYOR_BUILD_FOLDER%\deps -> .appveyor.yml, **\install.bat'
